@@ -1,0 +1,27 @@
+---
+layout: default
+---
+
+<article class="index">
+  <h1 class="page-title">所有文章</h1>
+  <div class="message">
+    {% if site.notification == '' %}有朋自远方来，不亦说乎。{% else %}{{site.notification | markdownify}}{% endif %}
+  </div>
+
+  {% for post in site.posts %}
+    {% assign currentdate = post.date | date: "%Y" %}
+    {% if currentdate != date %}
+      {% unless forloop.first %}</ul>{% endunless %}
+      <h2 id="year-{{post.date | date: '%Y'}}">{{currentdate}}</h2>
+      <ul class="related-posts">
+      {% assign date = currentdate %}
+    {% endif %}
+    <li>
+      <div class="heading">
+        <a href="{{site.baseurl}}{{post.url}}"><span>{{post.title}}</span></a>
+        <span class="timestamp">{{post.date | date: "%m/%d"}}</span>
+      </div>
+    </li>
+    {% if forloop.last %}</ul>{% endif %}
+  {% endfor %}
+</article>
