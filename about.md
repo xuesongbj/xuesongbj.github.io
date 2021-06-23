@@ -2,7 +2,7 @@
 layout: page
 title: "关于"
 permalink: about.html
-image: /public/images/redflag.jpg
+image: /public/images/flag.jpg
 color: '#f44336'
 sequence: 9
 ---
