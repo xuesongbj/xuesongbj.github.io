@@ -22,7 +22,7 @@ notification:     |
 analytics:        'UA-32028925-2'
 
 # Fallback image and color if not overwritten for tag or post
-image:            /public/images/flower.jpg
+image:            /public/images/planet.jpg
 color:            '#dc322f'
 
 author:
