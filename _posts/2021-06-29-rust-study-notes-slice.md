@@ -4,9 +4,11 @@ title: 'rust数据-切片'
 tags: [code]
 ---
 
+![](https://raw.githubusercontent.com/xuesongbj/xuesongbj/main/images/rust_02.jpeg)
+
+
 切片(slice,`[T]`)引用序列对象片段，没有所有权。动态尺寸类型(DST，dynamically sized type)，无法直接使用，只能通过指针(`&[T]`)进行。
 
-![](./rust_03.jpeg)
 
 > A type with a size that is known only at run-time is called a dynamically sized type (DST) or, informally, an unsized type. Slices and trait objects are two examples of DSTs.
 
