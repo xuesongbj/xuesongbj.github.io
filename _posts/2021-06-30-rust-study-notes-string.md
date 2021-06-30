@@ -22,7 +22,7 @@ tags: [code]
 
 ## 结构示意图
 
-```
+```rust
 
     String               heap
    +=======+           +=========//========+
@@ -80,7 +80,7 @@ struct &mut str {
 let s: &'static str = "hello, world!";
 ```
 
-```x86asm
+```rust
 (gdb) p/x &s
 $4 = 0x7fffffffe3a8
 
@@ -124,7 +124,7 @@ fn main() {
 }
 ```
 
-```x86asm
+```rust
 (gdb) info locals
 s = 0x55555558b000 b"abc"                   // abc存储位置: 0x55555558b000，即.rodata
 
@@ -161,8 +161,8 @@ fn main() {
 
 反汇编:
 
-```x86asm
-; let mut s = 1.to_string();
+```rust
+// let mut s = 1.to_string();
 
 (gdb) info locals
 s = alloc::string::String {
@@ -186,7 +186,7 @@ s = alloc::string::String {
 0x5555555a59d0:	0x0000000000000031                                      // ASCII 31 -> 1
 
 
-; let mut s = "abc".to_string();
+// let mut s = "abc".to_string();
 (gdb) info locals
 s = alloc::string::String {
   vec: alloc::vec::Vec<u8, alloc::alloc::Global> {
@@ -205,7 +205,7 @@ s = alloc::string::String {
 (gdb) x/3xb 0x5555555a59f0
 0x5555555a59f0:	0x61	0x62	0x63
 
-; let mut s = String::from("abc");
+// let mut s = String::from("abc");
 (gdb) info locals
 s = alloc::string::String {
   vec: alloc::vec::Vec<u8, alloc::alloc::Global> {
@@ -229,8 +229,8 @@ s = alloc::string::String {
 
 ### String 转 &str
 
-```x86asm
-; let x: &str = &s;
+```rust
+// let x: &str = &s;
 (gdb) ptype x
 type = struct &str {
   data_ptr: *mut u8,
@@ -250,7 +250,7 @@ $1 = 0x7fffffffe3a8
 0x55555559f9d0:	0x61	0x62	0x63
 
 
-; let y: &mut str = &mut s;
+// let y: &mut str = &mut s;
 (gdb) ptype y
 type = struct &mut str {
   data_ptr: *mut u8,
