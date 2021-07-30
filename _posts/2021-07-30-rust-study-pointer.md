@@ -8,7 +8,7 @@ tags: [code]
 
 **引用和原始指针是独立对象**，间接(*p)操作目标。透过指针修改目标值时，无需声明自身为可变(mut)，除非打算改变自己。
 
-![指针](./ptr.png)
+![指针](https://github.com/xuesongbj/xuesongbj.github.io/blob/master/_posts/ptr.png?raw=true)
 
 &nbsp;
 
