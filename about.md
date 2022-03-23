@@ -24,7 +24,7 @@ sequence: 9
 
 ## 更加了解我
 
-我在 [GitHub](https://github.com/myanbin) 上维护我的代码以及关注开源项目。
+我在 [GitHub](https://github.com/xuesongbj) 上维护我的代码以及关注开源项目。
 
 
 ## 为什么要写这个博客？
@@ -33,4 +33,4 @@ sequence: 9
 
 ## 联系我
 
-如果需要私下联系我，请发邮件到 [{{site.author.email}}](mailto:{{site.author.email}})。
+<img width="150" height="150" src="./wechat.jpeg">
