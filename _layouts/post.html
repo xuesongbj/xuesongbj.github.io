@@ -25,7 +25,8 @@ layout: default
     <span><span class="icon icon-calendar"></span> 发表于 <time datetime="{{page.date | date_to_xmlschema}}">{{page.date | date: '%Y 年 %m 月 %d 日'}}</time> &middot;</span>
     {% if tags_content != '' %}归类于{{tags_content}} &middot;{% endif %}
     阅读完需 {{content | strip_html | strip_newlines | size | divided_by: 350 | round}} 分钟 &middot;
-    <span><a href="https://github.com/xuesongbj/xuesongbj.github.io/issues/1">报告错误</a></span>
+    <span><a href="https://github.com/xuesongbj/xuesongbj.github.io/issues/1">报告错误</a></span> &middot;
+    <span id="busuanzi_container_page_pv"> 文章点击次数: <span id="busuanzi_value_page_pv"></span> </span>
   </div>
   <hr class="post-divide">
   {{content}}
