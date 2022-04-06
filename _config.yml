@@ -8,7 +8,7 @@ img_url:          https://cdn.jsdelivr.net/gh/infp/infp.github.io/images
 # Set to '' in case of hosting on `https://<your-github-name>.github.io`
 baseurl:          ''
 
-title:           雪松的博客 
+title:           雪松的博客(专注于Golang、Rust、分布式架构、DB)
 
 # Markdown enabled, however don't use more than one paragraph (enforced by `>`)
 description:      >
