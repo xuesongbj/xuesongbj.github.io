@@ -1,9 +1,7 @@
 /**
- * Author: Ma Yanbin <myanbin@gmail.com>
- * https://github.com/myanbin
+ * Author: xuesongbj <davidbjhd@gmail.com>
+ * https://github.com/xuesongbj
  */
-
-console.log("%c  ", "background-image: url('https://mayanbin.com/public/images/source-code.png'); background-repeat: no-repeat; background-size: 300px 300px; font-size: 300px");
 
 $(function() {
 
