@@ -1,0 +1,188 @@
+---
+layout: post
+title: 'Go1.18调度器-内核调用'
+tags: [code]
+---
+
+运行时(runtime)不能使用用户栈(`G.stack`)，须切回到`M.g0`。为此用汇编实现了专门的调用函数。
+
+> 有关汇编相关内容，参考《语言规范，进阶-混合编程》。
+>
+> 正常情况下，不会调整`g0.sched`设置。保持`mstart1`设置的初始化状态。以此开始执行，复用栈内存。
+>
+> 因此，每次切换到`g0`都从第二栈帧开始，无须清理调用堆栈。一旦出错，就回到`mstart0`内调用`mexit`终止。
+
+&nbsp;
+
+## mcall
+
+保存当前G执行状态，切换到g0执行特定函数。由于函数不返回，所以`mcall`不负责切回G。
+
+```nasm
+// asm_amd64.s
+
+// func mcall(fn func(*g))
+// Switch to m->g0's stack, call fn(g).
+
+// Fn must never return. It should gogo(&g->sched)
+// to keep running g.
+
+TEXT runtime·mcall<ABIInternal>(SB), NOSPLIT, $0-8
+    
+    // 参数
+    MOVQ    AX, DX                              // DX = fn
+
+    // 保存状态（g.sched）。
+    // g状态保存到g.sched
+    MOVQ    0(SP), BX
+    MOVQ    BX, (g_sched+gobuf_pc)(R14)         // BX ==> g.sched.pc
+    LEAQ    fn+0(FP), BX                        // g.sp ==> BX
+    MOVQ    BX, (g_sched+gobuf_sp)(R14)         // BX ==> g.sp ==> save ==> g.sched.sp
+    MOVQ    BP, (g_sched+gobuf_bp)(R14)         // BP ==> g.bp ==> save ==> g.sched.bp
+
+    MOVQ    g_m(R14), BX                        // BX = g.m
+    MOVQ    m_g0(BX), SI                        // SI = g.m.g0  ==> G0
+    
+    CMPQ    SI, R14                             // if g == m->g0 call badmcall  // SI ==> G0  R14 ==> g
+    JNE     goodm
+    JMP     runtime·badmcall(SB)
+    
+    goodm:
+
+    // 保存当前 g，作为后续调用参数。
+    MOVQ    R14, AX                            // AX (and arg 0) = g; g保存到AX
+    MOVQ    SI, R14                            // g.m.g0  ==> R14 ==> G0
+
+    // 恢复 g0 栈。
+    get_tls(CX)                                // MOVQ (TLS), CX                    // Set G in TLS, 
+    MOVQ    R14, g(CX)                         // MOVQ R14(G0) 0(CX)(TLS*1)
+    MOVQ    (g_sched+gobuf_sp)(R14), SP        // sp = g0.sched.sp
+    
+    // 调用目标函数。
+    PUSHQ   AX                                  // fn.arg = g; 将g状态AX保存到stack
+    MOVQ    0(DX), R12                          // [DX] ==> 待执行的特殊函数
+    CALL    R12              // fn(g            // G0执行特定函数
+    
+    POPQ    AX
+    JMP     runtime·badmcall2(SB)
+    RET
+```
+
+> 提示：`get_tls`将G指针存入指定寄存器。
+
+&nbsp;
+
+## systemstack
+
+切换到`M.g0`执行特定函数，然后恢复G执行。
+
+```nasm
+// asm_amd64.s
+
+// func systemstack(fn func())
+TEXT runtime·systemstack(SB), NOSPLIT, $0-8
+    
+    // 参数。
+    MOVQ    fn+0(FP), DI        // DI = fn
+    
+    // 当前 G、M。
+    get_tls(CX)
+    MOVQ    g(CX), AX           // AX = g
+    MOVQ    g_m(AX), BX         // BX = m
+
+    CMPQ    AX, m_gsignal(BX)
+    JEQ     noswitch
+
+    // 获取 M.g0。
+    MOVQ    m_g0(BX), DX        // DX = g0
+    CMPQ    AX, DX
+    JEQ     noswitch
+
+    CMPQ    AX, m_curg(BX)
+    JNE     bad
+
+    // 保存当前 g 状态（g.sched）。
+    CALL    gosave_systemstack_switch<>(SB)
+
+    // 切换到 g0 栈。
+    MOVQ    DX, g(CX)
+    MOVQ    DX, R14 // set the g register
+    MOVQ    (g_sched+gobuf_sp)(DX), BX
+    MOVQ    BX, SP
+
+    // 调用目标函数。
+    MOVQ    DI, DX
+    MOVQ    0(DI), DI
+    CALL    DI
+
+    // 切换回 g。
+    get_tls(CX)
+    MOVQ    g(CX), AX
+    MOVQ    g_m(AX), BX       // M
+    MOVQ    m_curg(BX), AX    // M.curg !!!
+    MOVQ    AX, g(CX)
+    MOVQ    (g_sched+gobuf_sp)(AX), SP
+    MOVQ    $0, (g_sched+gobuf_sp)(AX)
+    RET
+```
+
+```nasm
+// Save state of caller into g->sched,
+TEXT gosave_systemstack_switch<>(SB),NOSPLIT,$0
+    MOVQ    $runtime·systemstack_switch(SB), R9
+    MOVQ    R9, (g_sched+gobuf_pc)(R14)
+    LEAQ    8(SP), R9
+    MOVQ    R9, (g_sched+gobuf_sp)(R14)
+    MOVQ    $0, (g_sched+gobuf_ret)(R14)
+    MOVQ    BP, (g_sched+gobuf_bp)(R14)
+    // Assert ctxt is zero. See func save.
+    MOVQ    (g_sched+gobuf_ctxt)(R14), R9
+    TESTQ   R9, R9
+    JZ      2(PC)
+    CAL     runtime·abort(SB)
+    RET
+```
+
+&nbsp;
+
+## gogo
+
+跳转到指定的`G.sched.pc`执行。
+
+> 因为 `gogo` 由 `schedule/g0`调用，无需保存`G.stack`状态。
+>
+> 仅 `goexit0` 出错时，才执行 `gogo(g0.sched)`。
+
+```nasm
+// asm_amd64.s
+
+// func gogo(buf *gobuf)
+// restore state from Gobuf; longjmp
+
+TEXT runtime·gogo(SB), NOSPLIT, $0-8
+    MOVQ    +0(FP), BX          // gobuf
+    MOVQ    uf_g(BX), DX        // gobuf.g
+    MOVQ    X), CX              // make sure g != nil
+    JMP     gogo<>(SB)
+
+TEXT gogo<>(SB), NOSPLIT, $0
+    get_tls(CX)
+    MOVQ    DX, g(CX)
+    MOVQ    DX, R14             // set the g register
+    
+    // 切换到 G.stack。
+    MOVQ    gobuf_sp(BX), SP    // restore SP
+    MOVQ    gobuf_ret(BX), AX
+    MOVQ    gobuf_ctxt(BX), DX
+    MOVQ    gobuf_bp(BX), BP
+    
+    MOVQ    $0, gobuf_sp(BX)    // clear to help garbage collector
+    MOVQ    $0, gobuf_ret(BX)
+    MOVQ    $0, gobuf_ctxt(BX)
+    MOVQ    $0, gobuf_bp(BX)
+    
+    // 跳转执行 G.fn。
+    // 不会保存 gogo.PC，所以 G.fn RET 指向 goexit。
+    MOVQ    gobuf_pc(BX), BX
+    JMP     BX
+```
